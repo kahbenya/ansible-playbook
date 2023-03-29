@@ -1,13 +1,70 @@
 ---
 
+- name: setup Java
+  hosts: os-cluster
+  gather_facts: false
+  tasks:
+    - name: Prerequisites | Remove Java 8
+      yum:
+        name: java-1.8.0-openjdk-headless
+        state: absent
+
+    - name: Prerequisites | Install Java 11
+      yum:
+        name: java-11-openjdk-headless
+        state: present
+
+    - name: Prerequisites | Install package
+      yum:
+        name: "{{ package }}"
+        state: present
+      loop:
+        - sshpass
+        - libselinux-python
+      loop_control:
+        loop_var: package
+
+    - name: Prerequisites | Setup Max Map Count
+      copy:
+        dest: /etc/sysctl.d/90-opensearch.conf
+        content: "vm.max_map_count=262144"
+
 - name: opensearch installation & configuration
   hosts: os-cluster
   gather_facts: true
+  pre_tasks:
+    - name: Open needed ports
+      firewalld:
+        port: "{{ port }}"
+        permanent: yes
+        state: enabled
+      loop:
+        - "9200/tcp"
+        - "9300/tcp"
+      loop_control:
+         loop_var: port
+
   roles:
     - { role: linux/opensearch }
 
 - name: opensearch dashboards installation & configuration
   hosts: dashboards
   gather_facts: true
+  pre_tasks:
+    - name: Open needed service
+      firewalld:
+        service: https
+        permanent: yes
+        state: enabled
+    - name: Open needed ports
+      firewalld:
+        port: "{{ port }}"
+        permanent: yes
+        state: enabled
+      loop:
+        - "5601/tcp"
+      loop_control:
+         loop_var: port
   roles:
     - { role: linux/dashboards }
+

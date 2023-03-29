@@ -39,8 +39,34 @@ This ansible playbook supports the following,
 
 ### Prerequisite
 
-- **Ansible 2.9+**
-- **Java 8**
+- **Ansible 2.10+**
+- **Java 11**
+
+
+### Virtual Env
+
+Ansible 2.10+ is not available via the package maange in CentOS 7, therefore we need to
+use a virtual environment to perform the installation.
+
+Install the virtual env package
+
+```
+  # yum install python-virtualenv
+```
+
+Setup the virtualenv and install the needed packages
+
+```
+  # mkdir ~/ansible
+  # python-virtualenv ~/ansible
+  # cd ~/ansible
+  # . bin/activate
+  # pip install --upgrade pip
+  # pip install ansible==2.10
+  # pip install selinux
+```
+
+Navigate to the ansible-playbook folder
 
 ### Configure
 
@@ -61,6 +87,9 @@ os1 ansible_host=<Elastic/Public IP> address ansible_user=root ip=<Private IP ad
 ```
 
 #### Multi-node Installation
+
+**Note**: The playbook needs to be run on a machine in the cluster. Use one of the master nodes as
+the Ansible controller.
 
 By default, this playbook will install five nodes opensearch cluster with respective roles (3 master, 5 data and 2 ingest nodes).
 
@@ -85,6 +114,8 @@ You have to mention the opensearch node [roles](https://opensearch.org/docs/late
 
 #### Single Node Installation
 
+**Note**: The playbook needs to be run on the target machine.
+
 For single node installation, you need to change the `cluster_type` variable in inventory file `inventories/opensearch/group_vars/all/all.yml`
 
 ```
@@ -99,7 +130,7 @@ cluster_type: single-node
 
 You should set the reserved users(`admin` and `kibanaserver`) password using `admin_password` and `kibanaserver_password` variables.
 
-If you define your own internal users (in addition to the reserved `admin` and `kibanaserver`) in custom configuration 
+If you define your own internal users (in addition to the reserved `admin` and `kibanaserver`) in custom configuration
 files, then passwords to them should be set via variables on the principle of `<username>_password`
 
 It will install and configure the opensearch. Once the deployment completed, you can access the opensearch Dashboards with user `admin` and password which you provided for variable `admin_password`.
@@ -110,40 +141,40 @@ It will install and configure the opensearch. Once the deployment completed, you
 **Note**: Change the user details in `ansible_user` parameter in `inventories/opensearch/hosts`  inventory file.
 
 ### OpenID authentification
-To enable authentication via OpenID, you need to change the `auth_type` variable in the inventory file 
-`inventories/opensearch/group_vars/all/all.yml` by setting the value `oidc` and prescribe the necessary settings 
+To enable authentication via OpenID, you need to change the `auth_type` variable in the inventory file
+`inventories/opensearch/group_vars/all/all.yml` by setting the value `oidc` and prescribe the necessary settings
 in the `oidc:` block.
 
 ### Custom configuration files
 
-To override the default settings files, you need to put your settings in the `files` directory. The files should be 
+To override the default settings files, you need to put your settings in the `files` directory. The files should be
 named exactly the same as the original ones (internal_users.yml, roles.yml, tenants.yml, etc.)
 
-Especially note the file `files/internal_users.yml`. If it exists and the `copy_custom_security_configs: true` setting is enabled, 
-then only in this case the task of setting passwords for internal users from variables is started. If the file `internal_users.yml` 
+Especially note the file `files/internal_users.yml`. If it exists and the `copy_custom_security_configs: true` setting is enabled,
+then only in this case the task of setting passwords for internal users from variables is started. If the file `internal_users.yml`
 is not located in the `files` directory, but, for example, in one of its subdirectories, then playbook will not work correctly
 
 ### IaC (Infrastructure-as-Code)
 
-If you want to use the role not only for the initial deployment of the cluster, but also for further management of it, 
-then set the `iac_enable` parameter to `true`. 
+If you want to use the role not only for the initial deployment of the cluster, but also for further management of it,
+then set the `iac_enable` parameter to `true`.
 
-By default, if the /tmp/opensearch-nodecerts directory with certificates exists on the server from which the playbook 
+By default, if the /tmp/opensearch-nodecerts directory with certificates exists on the server from which the playbook
 is launched, it is assumed that the configuration has not changed and some settings are not copied to the target servers.
 
-Conversely, if the /tmp/opensearch-nodecerts directory does not exist on the server from which the playbook is launched, 
+Conversely, if the /tmp/opensearch-nodecerts directory does not exist on the server from which the playbook is launched,
 then new certificates and settings are generated and they are copied to the target servers.
 
-If you use this repository not only for the initial deployment of the cluster, but also for its automatic configuration 
-via CI/CD, then new certificates will be generated every time the pipeline is launched, overwriting existing ones, which 
+If you use this repository not only for the initial deployment of the cluster, but also for its automatic configuration
+via CI/CD, then new certificates will be generated every time the pipeline is launched, overwriting existing ones, which
 is not always necessary if the cluster is already in production.
 
-When iac_enable enabling, and all the cluster servers have all the necessary certificates, they will not be copied again. 
-If at least on one server (for example, when adding a new server to the cluster) if there is not at least one certificate 
+When iac_enable enabling, and all the cluster servers have all the necessary certificates, they will not be copied again.
+If at least on one server (for example, when adding a new server to the cluster) if there is not at least one certificate
 from the list, then all certificates on all cluster servers will be updated
 
-Also, if the option is enabled, the settings files will be updated with each execution (previously, the settings were 
-updated only if the /tmp/opensearch-nodecerts directory was missing on the server from which the playbook was launched 
+Also, if the option is enabled, the settings files will be updated with each execution (previously, the settings were
+updated only if the /tmp/opensearch-nodecerts directory was missing on the server from which the playbook was launched
 and new certificates were generated)
 
 ## Contributing
